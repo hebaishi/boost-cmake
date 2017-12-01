@@ -79,7 +79,6 @@ endif()
 set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} address-model=${ARCH})
 set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} link=shared,static)
 
-string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE_LOWERCASE)
 set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} variant=release)
 
 message(STATUS "Building Boost [${BOOST_BUILD_COMMAND} ${BOOST_BUILD_ARGS}]")
