@@ -1,0 +1,93 @@
+cmake_minimum_required(VERSION 3.10)
+set(BOOST_VER_MAJOR 1)
+set(BOOST_VER_MINOR 64)
+set(BOOST_VER_PATCH 0)
+
+set(BOOST_FILENAME boost_${BOOST_VER_MAJOR}_${BOOST_VER_MINOR}_${BOOST_VER_PATCH}.tar.gz)
+set(BOOST_BUILD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/boost-build)
+
+if (NOT EXISTS ${BOOST_BUILD_PATH})
+file(MAKE_DIRECTORY ${BOOST_BUILD_PATH})
+endif()
+
+message(STATUS "Looking for boost source tarball ${BOOST_BUILD_PATH}/${BOOST_FILENAME}")
+if(NOT EXISTS ${BOOST_BUILD_PATH}/${BOOST_FILENAME})
+message(STATUS "Downloading ${BOOST_BUILD_PATH}/${BOOST_FILENAME}")
+file(
+  DOWNLOAD
+  https://dl.bintray.com/boostorg/release/${BOOST_VER_MAJOR}.${BOOST_VER_MINOR}.${BOOST_VER_PATCH}/source/${BOOST_FILENAME}
+  ${BOOST_BUILD_PATH}/${BOOST_FILENAME}
+)
+else()
+message(STATUS "Boost source tarball found")
+endif()
+
+set(BOOST_SOURCE_PATH ${BOOST_BUILD_PATH}/boost_${BOOST_VER_MAJOR}_${BOOST_VER_MINOR}_${BOOST_VER_PATCH})
+
+message(STATUS "Looking for ${BOOST_SOURCE_PATH}")
+if (NOT EXISTS ${BOOST_SOURCE_PATH})
+message(STATUS "Extracting sources")
+execute_process(
+COMMAND ${CMAKE_COMMAND} -E tar xzf ${BOOST_BUILD_PATH}/${BOOST_FILENAME}
+WORKING_DIRECTORY ${BOOST_BUILD_PATH}
+)
+else()
+message(STATUS "Extracted sources found")
+endif()
+
+if (WIN32)
+    set(INTERPRETER_COMMAND "cmd")
+    set(INTERPRETER_ARGS "/C")
+    set(SCRIPT_NAME "bootstrap.bat")
+else()
+    set(INTERPRETER_COMMAND "sh")
+    set(INTERPRETER_ARGS "")
+    set(SCRIPT_NAME "bootstrap.sh")
+endif()
+
+set(BOOST_BUILD_PATH ${BOOST_SOURCE_PATH})
+
+set(BOOST_INCLUDE ${BOOST_SOURCE_PATH} CACHE INTERNAL "")
+
+set(BOOST_B2_EXECUTABLE ${BOOST_BUILD_PATH}/b2${CMAKE_EXECUTABLE_SUFFIX})
+message(STATUS "Looking for ${BOOST_B2_EXECUTABLE}")
+if (NOT EXISTS ${BOOST_B2_EXECUTABLE})
+message(STATUS "Running bootstrap script [${INTERPRETER_COMMAND} ${INTERPRETER_ARGS} ${SCRIPT_NAME}]")
+execute_process(
+COMMAND ${INTERPRETER_COMMAND} ${INTERPRETER_ARGS} ${SCRIPT_NAME}
+WORKING_DIRECTORY ${BOOST_BUILD_PATH}
+)
+else()
+message(STATUS "Boost b2 executable found")
+endif()
+
+set(VS_VERSION "")
+if (MSVC)
+    string(SUBSTRING ${CMAKE_GENERATOR} 0 13 TEMP_VS_NAME)
+    string(TOUPPER ${TEMP_VS_NAME} TEMP_VS_NAME)
+    if(TEMP_VS_NAME STREQUAL "VISUAL STUDIO")
+        string(SUBSTRING ${CMAKE_GENERATOR} 14 2 VS_VERSION)
+        message(STATUS "Visual Studio version ${VS_VERSION} detected")
+    endif()
+endif()
+
+set(BOOST_BUILD_COMMAND "./b2${CMAKE_EXECUTABLE_SUFFIX}")
+set(BOOST_BUILD_ARGS --with-program_options)
+
+if(NOT ${VS_VERSION} STREQUAL "")
+set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} --toolset=msvc-${VS_VERSION}.0)
+endif()
+
+set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} address-model=${ARCH})
+set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} link=shared,static)
+
+string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE_LOWERCASE)
+set(BOOST_BUILD_ARGS ${BOOST_BUILD_ARGS} variant=release)
+
+message(STATUS "Building Boost [${BOOST_BUILD_COMMAND} ${BOOST_BUILD_ARGS}]")
+execute_process(
+COMMAND  ${BOOST_BUILD_COMMAND} ${BOOST_BUILD_ARGS}
+WORKING_DIRECTORY ${BOOST_BUILD_PATH}
+)
+
+set(BOOST_SEARCH_PATH ${BOOST_SOURCE_PATH})
