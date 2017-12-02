@@ -15,3 +15,16 @@ find_package(
   unit_test_framework
 )
 ```
+
+You can then add the path to the boost headers to our include directories:
+
+```cmake
+include_directories(${Boost_INCLUDE_DIR})
+```
+
+And link against the boost libraries:
+
+```cmake
+target_link_libraries(${PROJECT_NAME} ${Boost_PROGRAM_OPTIONS_LIBRARY_DEBUG})
+target_link_libraries( MyTest ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY_RELEASE} )
+```
